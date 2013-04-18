@@ -25,7 +25,7 @@ int main (int argc, char *argv[])
 
   // configure and install NDN stack on nodes
   ndn::StackHelper ndnHelper;
-  ndnHelper.SetContentStore ("ns3::ndn::cs::Lru", "MaxSize", "100");
+  ndnHelper.SetContentStore ("ns3::ndn::cs::Freshness::Lru", "MaxSize", "100");
   ndnHelper.SetForwardingStrategy ("ns3::ndn::fw::BestRoute");
   ndnHelper.InstallAll ();
   // or

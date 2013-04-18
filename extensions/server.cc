@@ -32,6 +32,7 @@ public:
     
     ndn::ContentObject data;
     data.SetName (interest->GetName ());
+    data.SetFreshness (Seconds (5.0));
 
     // create packet with meaningful payload ("content")
     Ptr<Packet> packet = Create<Packet> (reinterpret_cast<const uint8_t *> (os.str ().c_str ()),
