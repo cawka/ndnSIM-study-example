@@ -26,18 +26,18 @@ public:
   }
   
   void
-  OnContentObject (const Ptr< const ndn::ContentObject > &contentObject, Ptr< Packet > payload)
+  OnData (Ptr< const ndn::Data > data)
   {
-    ndn::App::OnContentObject (contentObject, payload); // for proper logging
+    ndn::App::OnData (data); // for proper logging
 
-    NS_LOG_DEBUG ("<< ndnSIM data " << contentObject->GetName ());
+    NS_LOG_DEBUG ("<< ndnSIM data " << data->GetName ());
     
     Simulator::Remove (m_interestTimeoutEvent); // cancel interest timeout
 
     // print out payload ("content") to the standard output
-    payload->CopyData (&std::cout, payload->GetSize ());
+    data->GetPayload ()->CopyData (&std::cout, data->GetPayload ()->GetSize ());
 
-    int seqno = boost::lexical_cast<int> (contentObject->GetName ().GetLastComponent ());
+    int seqno = data->GetName ().get (-1).toSeqNum ();
     if (seqno >= 10)
       {
         return;
@@ -59,19 +59,14 @@ private:
   void
   SendInterest (int seqno)
   {
-    ndn::Interest interest;
-    interest.SetName (ndn::Name (m_baseInterestName)(seqno));
-    // same as: interest.SetName (ndn::Name (m_baseInterestName).Add (seqno));
-    interest.SetInterestLifetime (Seconds (2.0));
-    interest.SetNonce (m_rand.GetValue ());
-    
-    // some standard mechanics to create packet with Interest "header"
-    Ptr<Packet> packet = Create<Packet> ();
-    packet->AddHeader (interest);
-    m_transmittedInterests (&interest, this, m_face);
+    Ptr<ndn::Interest> interest = Create<ndn::Interest> ();
+    interest->SetName (ndn::Name (m_baseInterestName).appendSeqNum (seqno));
+    interest->SetInterestLifetime (Seconds (2.0));
+    interest->SetNonce (m_rand.GetValue ());
 
     // send packet out to the NDN stack
-    m_protocolHandler (packet);
+    Simulator::ScheduleNow (&ndn::Face::ReceiveInterest, m_face, interest);
+    m_transmittedInterests (interest, this, m_face);
 
     m_interestTimeoutEvent = Simulator::Schedule (Seconds (2.01), &Client::OnTimeout, this, seqno);
   }

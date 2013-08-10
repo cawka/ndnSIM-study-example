@@ -20,9 +20,9 @@ public:
   }
   
   void
-  OnInterest (const Ptr< const ndn::Interest > &interest, Ptr< Packet > origPacket)
+  OnInterest (Ptr< const ndn::Interest > interest)
   {
-    ndn::App::OnInterest (interest, origPacket); // for proper logging
+    ndn::App::OnInterest (interest); // for proper logging
     
     NS_LOG_DEBUG ("<< ndnSIM interest " << interest->GetName ());
 
@@ -30,20 +30,16 @@ public:
     std::ostringstream os;
     os << "ndnSIM LINE #" << (COUNTER++) << endl;
     
-    ndn::ContentObject data;
-    data.SetName (interest->GetName ());
-    data.SetFreshness (Seconds (5.0));
-
     // create packet with meaningful payload ("content")
-    Ptr<Packet> packet = Create<Packet> (reinterpret_cast<const uint8_t *> (os.str ().c_str ()),
-                                         os.str ().size ()+1);
-    // Ptr<Packet> packet = Create<Packet> (1000); <-- creates a packet with 1000-byte virtual payload
-
-    packet->AddHeader (data);
-    m_transmittedContentObjects (&data, packet, this, m_face);
+    Ptr<ndn::Data> data = Create<ndn::Data> (Create<Packet> (reinterpret_cast<const uint8_t *> (os.str ().c_str ()),
+                                                             os.str ().size ()+1));
+    data->SetName (interest->GetName ());
+    data->SetFreshness (Seconds (5.0));
 
     // send packet out to the NDN stack to "satisfy" the interest
-    m_protocolHandler (packet);
+    Simulator::ScheduleNow (&ndn::Face::ReceiveData, m_face, data);
+
+    m_transmittedDatas (data, this, m_face);
   }
 
 protected:
